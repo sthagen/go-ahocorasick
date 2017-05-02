@@ -16,6 +16,12 @@ func assert(t *testing.T, b bool) {
 	}
 }
 
+func refute(t *testing.T, b bool) {
+	if b {
+		t.Fail()
+	}
+}
+
 func TestNoPatterns(t *testing.T) {
 	m := NewStringMatcher([]string{})
 	hits := m.Match([]byte("foo bar baz"))
@@ -323,4 +329,70 @@ func BenchmarkLongRegexpMany(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		re5.FindAllIndex(bytes2, -1)
 	}
+}
+
+func TestNoPatterns_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{})
+	found := m.MatchString([]byte("foo bar baz"))
+	refute(t, found)
+}
+
+func TestNoData_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"foo", "baz", "bar"})
+	found := m.MatchString([]byte(""))
+	refute(t, found)
+}
+
+func TestSuffixes_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"Superman", "uperman", "perman", "erman"})
+	found := m.MatchString([]byte("The Man Of Steel: Superman"))
+	assert(t, found)
+}
+
+func TestPrefixes_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"Superman", "Superma", "Superm", "Super"})
+	found := m.MatchString([]byte("The Man Of Steel: Superman"))
+	assert(t, found)
+}
+
+func TestInterior_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"Steel", "tee", "e"})
+	found := m.MatchString([]byte("The Man Of Steel: Superman"))
+	assert(t, found)
+}
+
+func TestMatchAtStart_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"The", "Th", "he"})
+	found := m.MatchString([]byte("The Man Of Steel: Superman"))
+	assert(t, found)
+}
+
+func TestMatchAtEnd_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"teel", "eel", "el"})
+	found := m.MatchString([]byte("The Man Of Steel"))
+	assert(t, found)
+}
+
+func TestOverlappingPatterns_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"Man ", "n Of", "Of S"})
+	found := m.MatchString([]byte("The Man Of Steel"))
+	assert(t, found)
+}
+
+func TestMultipleMatches_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"The", "Man", "an"})
+	found := m.MatchString([]byte("A Man A Plan A Canal: Panama, which Man Planned The Canal"))
+	assert(t, found)
+}
+
+func TestSingleCharacterMatches_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"a", "M", "z"})
+	found := m.MatchString([]byte("A Man A Plan A Canal: Panama, which Man Planned The Canal"))
+	assert(t, found)
+}
+
+func TestNothingMatches_MatchString(t *testing.T) {
+	m := NewStringMatcher([]string{"baz", "bar", "foo"})
+	found := m.MatchString([]byte("A Man A Plan A Canal: Panama, which Man Planned The Canal"))
+	refute(t, found)
 }

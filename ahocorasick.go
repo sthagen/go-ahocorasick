@@ -9,9 +9,7 @@
 
 package ahocorasick
 
-import (
-	"container/list"
-)
+import "container/list"
 
 // A node in the trie structure used to implement Aho-Corasick
 type node struct {
@@ -255,4 +253,42 @@ func (m *Matcher) Match(in []byte) []int {
 	}
 
 	return hits
+}
+
+// MatchString searches a byte slice for bslice matches
+func (m *Matcher) MatchString(in []byte) bool {
+	m.counter++
+
+	n := m.root
+
+	for _, b := range in {
+		c := int(b)
+
+		if !n.root && n.child[c] == nil {
+			n = n.fails[c]
+		}
+
+		if n.child[c] != nil {
+			f := n.child[c]
+			n = f
+
+			if f.output && f.counter != m.counter {
+				return true
+			}
+
+			for !f.suffix.root {
+				f = f.suffix
+				if f.counter != m.counter {
+					return true
+				}
+
+				// There's no point working our way up the
+				// suffixes if it's been done before for this call
+				// to Match. The matches are already in hits.
+				break
+			}
+		}
+	}
+
+	return false
 }
